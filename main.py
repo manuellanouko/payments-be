@@ -1,47 +1,27 @@
 import uvicorn
 from fastapi import FastAPI
+
+from src.controllers.payments_controller import PaymentsController
+from src.utils.normalise_payments_data import normalise_payments_data
+
 app = FastAPI()
-
-
-from src.controllers.payment_controller import PaymentController
-controller = PaymentController()
+controller = PaymentsController()
 
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Welcome to the Payments Management System"}
 
 
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
-
-# PAYMENT APIs
+# PAYMENT APIS
 @app.get("/payments")
-async def get_payments():
-    return controller.get_payments()
-
-@app.put("/payment/{payment_id}")
-async def update_payment(payment_id: int):
-    return controller.update_payment(payment_id=payment_id)
-
-@app.delete("/payment/{payment_id}")
-async def delete_payment(payment_id: int):
-    return controller.delete_payment(payment_id=payment_id)
-
-@app.post("/payment")
-async def create_payment():
-    return controller.create_payment()
-
-# EVIDENCE APIs
-@app.post("/evidence")
-async def upload_evidence():
-    return controller.upload_evidence()
-
-@app.get("/evidence/{evidence_id}")
-async def download_evidence(evidence_id: int):
-    return controller.download_evidence(evidence_id=evidence_id)
+async def get_payments(page_number:int = 0):
+    return controller.get_payments(page_number=page_number)
 
 
 if __name__ == "__main__":
+    # Load payments from file
+    dataframe = normalise_payments_data()
+    controller.store_payments(dataframe)
+    # Start the server
     uvicorn.run(app, host="0.0.0.0", port=8000)
