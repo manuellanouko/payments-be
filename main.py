@@ -5,6 +5,25 @@ from src.controllers.payments_controller import PaymentsController
 from src.utils.normalise_payments_data import normalise_payments_data
 
 app = FastAPI()
+
+# Allow access to frontend app
+# START ================================================================================================================
+from fastapi.middleware.cors import CORSMiddleware
+origins = [
+    "http://localhost",
+    "https://localhost",
+    "http://localhost:4200",
+    "https://localhost:4200",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# END ==================================================================================================================
+
 controller = PaymentsController()
 
 
