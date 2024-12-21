@@ -10,6 +10,8 @@ controller = PaymentsController()
 
 @app.get("/")
 async def root():
+    dataframe = normalise_payments_data()
+    controller.store_payments(dataframe)
     return {"message": "Welcome to the Payments Management System"}
 
 
