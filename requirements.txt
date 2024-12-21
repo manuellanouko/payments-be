@@ -2,3 +2,5 @@ unicorn
 fastapi
 dataclasses
 pandas
+pymongo
+pydantic
