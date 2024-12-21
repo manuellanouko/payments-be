@@ -3,4 +3,5 @@ fastapi
 dataclasses
 pandas
 pymongo
+pymongo[srv]
 pydantic
