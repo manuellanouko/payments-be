@@ -14,6 +14,8 @@ origins = [
     "https://localhost",
     "http://localhost:4200",
     "https://localhost:4200",
+    "https://payments-fe-00f4df096687.herokuapp.com/",
+    "https://payments-fe-00f4df096687.herokuapp.com/",
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -40,9 +42,9 @@ async def get_payments(page_number:int = 0):
     return controller.get_payments(page_number=page_number)
 
 
-# if __name__ == "__main__":
-#     # Load payments from file
-#     # dataframe = normalise_payments_data()
-#     # controller.store_payments(dataframe)
-#     # Start the server
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    # Load payments from file
+    # dataframe = normalise_payments_data()
+    # controller.store_payments(dataframe)
+    # Start the server
+    uvicorn.run(app, host="0.0.0.0", port=8000)
