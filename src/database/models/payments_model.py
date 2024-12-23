@@ -1,9 +1,13 @@
 import datetime
 import logging
+from bson.objectid import ObjectId
 
 from fastapi import HTTPException
 from pydantic import BaseModel, ConfigDict
-from src.data.enums.payment_enums import PaymentStatus
+
+from src.data.api_models.update_payment_request_model import UpdatePaymentRequestModel
+from src.data.enums.payment_enums import PaymentStatus, PaymentFilterColumns
+from src.data.api_models.get_payments_request_model import GetPaymentsRequestModel
 from src.database.config import DBConfig
 from typing import Optional
 
@@ -36,18 +40,42 @@ class PaymentsModel(BaseModel):
     total_due: Optional[float] = 0.0
 
 
-def get_payments(page_number:int = 0):
-    try:
-        total_count = PAYMENTS_COLLECTION.count_documents({})
-        response = PAYMENTS_COLLECTION.find({}).skip(page_number*PAGE_SIZE).limit(PAGE_SIZE)
-        return {
-            
-            "payments": [to_dict(payment) for payment in response],
-            "total_count": total_count,
-        }
-    except Exception as e:
-        LOGGER.exception("MODEL ERROR: get_payments")
-        return HTTPException(status_code=500, detail=str(e))
+
+def get_payments(page_number:int = 0, request_model: GetPaymentsRequestModel = None):
+    filters = request_model.filters if request_model else None
+    search_text = request_model.search_text if request_model else None
+    if not request_model or (request_model and request_model.are_filters_valid):
+        try:
+            # Add the user's filters
+            db_filters = filters or {}
+            # Add search filters
+            if search_text:
+                search_filters = {
+                    "$or": [{field: {"$regex": search_text}} for field in PaymentFilterColumns.get_all() if field not in db_filters],
+                }
+                if filters and search_filters:
+                    db_filters = {
+                        "$and": [
+                            filters,
+                            search_filters,
+                        ]
+                    }
+                else:
+                    db_filters = search_filters
+
+            print(db_filters)
+            # Query DB
+            total_count = PAYMENTS_COLLECTION.count_documents(db_filters)
+            response = PAYMENTS_COLLECTION.find(db_filters).skip(page_number*PAGE_SIZE).limit(PAGE_SIZE)
+            return {
+                "payments": [to_dict(payment) for payment in response],
+                "total_count": total_count,
+            }
+        except Exception as e:
+            LOGGER.exception("MODEL ERROR: get_payments")
+            return HTTPException(status_code=500, detail=str(e))
+    else:
+        return HTTPException(status_code=404, detail="Invalid filters")
 
 def store_payments(data_frame):
     try:
@@ -62,6 +90,20 @@ def store_payments(data_frame):
     except Exception as e:
         return HTTPException(status_code=500, detail=str(e))
 
+def update_payment(payment_id:str, request_model: UpdatePaymentRequestModel):
+    try:
+        filters: dict = {"_id": ObjectId(payment_id)}
+        update_fields = {
+            "payee_payment_status": request_model.payee_payment_status,
+            "payee_due_date": request_model.payee_due_date,
+            "due_amount": request_model.due_amount,
+        }
+        result = PAYMENTS_COLLECTION.update_one(filters, {"$set": update_fields})
+        updated_payment = PAYMENTS_COLLECTION.find_one(filters)
+        return to_dict(updated_payment)
+    except Exception as e:
+        LOGGER.exception(f"MODEL ERROR: update_payment: {payment_id}, payload: {request_model}")
+        return HTTPException(status_code=500, detail=str(e))
 
 
 def to_dict(payment: PaymentsModel):
